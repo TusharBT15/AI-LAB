@@ -88,3 +88,16 @@ def check():
     print("Entail")
         
 check()
+
+Output:
+Enter the knowledge base: (~qv~pvr)^(~q^p)^q
+Enter the query: r
+[True, True, True] False True
+[True, True, False] False False
+[True, False, True] False True
+[True, False, False] False False
+[False, True, True] False True
+[False, True, False] False False
+[False, False, True] False True
+[False, False, False] False False
+Entail
