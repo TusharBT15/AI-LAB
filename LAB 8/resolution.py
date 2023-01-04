@@ -26,7 +26,7 @@ def solve(rules, goal):
     steps = dict()
     for rule in temp:
         steps[rule] = 'Given.'
-    steps[negation(goal)] = 'negationd conclusion.'
+    steps[negation(goal)] = 'negationed rule.'
     i = 0
     while i < len(temp):
         n = len(temp)
