@@ -1,79 +1,138 @@
-preds_x = 0
-arg_y = [None for i in range(10)]
-
-pred_arr = [None for i in range(10)]
-arg_arr = [[None for i in range(10)] for i in range(10)]
+import re
 
 
-def merge():
-    flag = 0
-    for i in range(preds_x - 1):
-        for j in range(arg_y[i]):
-            if (arg_arr[i][j] != arg_arr[i + 1][j]):
-                if (flag == 0):
-                    print("subs :")
-                    print(arg_arr[i + 1][j], "/", arg_arr[i][j])
-                    flag += 1
-
-        if flag == 0:
-            print("Arrays are same!!!! no subs needed!!!")
+def getAttributes(expression):
+    expression = expression.split("(")[1:]
+    expression = "(".join(expression)
+    expression = expression.split(")")[:-1]
+    expression = ")".join(expression)
+    attributes = expression.split(',')
+    return attributes
 
 
-def check_cond():
-    pred_flag = 0
-    arg_flag = 0
-    for i in range(preds_x - 1):
-        if (pred_arr[i] != pred_arr[i + 1]):
-            print("preds not same ")
-            pred_flag = 1
-            break
-    if (pred_flag != 1):
-        ind = 0
-        key = arg_y[ind]
-        l = len(arg_y)
-        for i in range(0, key - 1):
-            if i >= key:
-                continue
-            if ind != l - 1:
-                ind += 1
-                key = arg_y[ind]
-            if (arg_y[i] != arg_y[i + 1]):
-                print("arg_arrs Not Same..!")
-                arg_flag = 1
-                break
-
-        if (arg_flag == 0 and pred_flag != 1):
-            merge()
+def getInitialPredicate(expression):
+    return expression.split("(")[0]
 
 
-def output():
-    print("Preds are: ")
-    for i in range(preds_x):
-        print(pred_arr[i], "(", end="")
-        for j in range(arg_y[i]):
-            print(arg_arr[i][j], end="")
-            if (j != arg_y[i] - 1):
-                print(",", end="")
-        print(")")
+def isConstant(char):
+    return char.isupper() and len(char) == 1
 
 
+def isVariable(char):
+    return char.islower() and len(char) == 1
+
+
+def replaceAttributes(exp, old, new):
+    attributes = getAttributes(exp)
+    predicate = getInitialPredicate(exp)
+    for index, val in enumerate(attributes):
+        if val == old:
+            attributes[index] = new
+    return predicate + "(" + ",".join(attributes) + ")"
+
+
+def apply(exp, substitutions):
+    for substitution in substitutions:
+        new, old = substitution
+        exp = replaceAttributes(exp, old, new)
+    return exp
+def checkOccurs(var, exp):
+    if exp.find(var) == -1:
+        return False
+    return True
+
+
+def getFirstPart(expression):
+    attributes = getAttributes(expression)
+    return attributes[0]
+
+
+def getRemainingPart(expression):
+    predicate = getInitialPredicate(expression)
+    attributes = getAttributes(expression)
+    newExpression = predicate + "(" + ",".join(attributes[1:]) + ")"
+    return newExpression
+def unify(exp1, exp2):
+    if exp1 == exp2:
+        return []
+
+    if isConstant(exp1) and isConstant(exp2):
+        if exp1 != exp2:
+            print(f"{exp1} and {exp2} are constants. Cannot be unified")
+            return []
+
+    if isConstant(exp1):
+        return [(exp1, exp2)]
+
+    if isConstant(exp2):
+        return [(exp2, exp1)]
+
+    if isVariable(exp1):
+        return [(exp2, exp1)] if not checkOccurs(exp1, exp2) else []
+
+    if isVariable(exp2):
+        return [(exp1, exp2)] if not checkOccurs(exp2, exp1) else []
+
+    if getInitialPredicate(exp1) != getInitialPredicate(exp2):
+        print("Cannot be unified as the predicates do not match!")
+        return []
+
+    attributeCount1 = len(getAttributes(exp1))
+    attributeCount2 = len(getAttributes(exp2))
+    if attributeCount1 != attributeCount2:
+        print(f"Length of attributes {attributeCount1} and {attributeCount2} do not match. Cannot be unified")
+        return []
+
+    head1 = getFirstPart(exp1)
+    head2 = getFirstPart(exp2)
+    initialSubstitution = unify(head1, head2)
+    if not initialSubstitution:
+        return []
+    if attributeCount1 == 1:
+        return initialSubstitution
+
+    tail1 = getRemainingPart(exp1)
+    tail2 = getRemainingPart(exp2)
+
+    if initialSubstitution != []:
+        tail1 = apply(tail1, initialSubstitution)
+        tail2 = apply(tail2, initialSubstitution)
+
+    remainingSubstitution = unify(tail1, tail2)
+    if not remainingSubstitution:
+        return []
+
+    return initialSubstitution + remainingSubstitution
 def main():
-    global preds_x
-    ch = 'y'
-    while (ch == 'y'):
-        preds_x = int(input("No. of preds:"))
-        for i in range(preds_x):
-            print("Enter pred ", (i + 1), " :")
-            pred_arr[i] = input()
-            print("No. of args for pred ", pred_arr[i], " :")
-            arg_y[i] = int(input())
-
-            for j in range(arg_y[i]):
-                print("Enter arg ", j + 1, " :")
-                arg_arr[i][j] = input()
-        output()
-        check_cond()
-        ch = input("Continue ??? (y/n) :")
-
+    print("Enter the first expression")
+    e1 = input()
+    print("Enter the second expression")
+    e2 = input()
+    substitutions = unify(e1, e2)
+    print("The substitutions are:")
+    print([' / '.join(substitution) for substitution in substitutions])
 
 main()
+
+# Enter the first expression
+# knows(f(x),y)
+# Enter the second expression
+# knows(J,John)
+# The substitutions are:
+# ['J / f(x)', 'John / y']
+# main()
+# Enter the first expression
+# Student(x)
+# Enter the second expression
+# Teacher(Rose)
+# Cannot be unified as the predicates do not match!
+# The substitutions are:
+# []
+# main()
+# Enter the first expression
+# like(A,y)
+# Enter the second expression
+# like(K,g(x))
+# A and K are constants. Cannot be unified
+# The substitutions are:
+# []
